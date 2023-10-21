@@ -1,23 +1,13 @@
 # Keyboard reset
 
-## Via command line
+This project is a gnome extension which addresses annoyance originating
+from having more than one keyboard layout. When screensaver activates,
+the gnome-screensaver will use the last keyboard layout used, which
+often is not a default one. That causes user to incorrectly enter the
+password.
 
-```bash
-/usr/bin/dbus-monitor --session "type=method_call,interface=org.gnome.ScreenSaver" |
-while read -r MSG; do
-    if /usr/bin/grep "member=Lock" <<<$MSG ; then
-        /usr/bin/gdbus call --session --dest org.gnome.Shell \
-            --object-path /dev/galets/gkr \
-            --method dev.galets.gkr.reset
-    fi
-done
-```
+This extension will reset keyboard layout on screensaver activation to
+the first keyboard layout.
 
-## Notes
-
-to debug, run this:
-
-```bash
-dbus-run-session -- gnome-shell --nested --wayland
-```
-
+Also, it is possible to invoke keyboard layout reset manually via command
+line. See [the notes](./NOTES.md)
