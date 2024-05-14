@@ -1,5 +1,8 @@
 # Keyboard reset extension for Gnome
 
+This version is for gnome shell versions 45+. For older shells, please
+see [notice for legacy shells](#legacy)
+
 ## Objective
 
 When there is more than one keyboard layout registered in Gnome, the
@@ -28,7 +31,7 @@ or using following command line:
 
 ```bash
 gnome-extensions enable keyboard-reset@galets
-# this command must output "State: ENABLED"
+# this command must output "Enabled: Yes"
 gnome-extensions info keyboard-reset@galets
 ```
 
@@ -44,4 +47,15 @@ This extension exposes method to set keyboard to default as such:
 /usr/bin/gdbus call --session --dest org.gnome.Shell \
             --object-path /dev/galets/gkr \
             --method dev.galets.gkr.reset
+```
+
+## Legacy Gnome Shell {#legacy}
+
+For gnome shells version 41 to 44, please use legacy branch as such:
+
+```bash
+git clone https://github.com/galets/gnome-keyboard-reset
+cd gnome-keyboard-reset
+git checkout legacy
+make install
 ```

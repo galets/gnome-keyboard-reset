@@ -1,9 +1,8 @@
 "use strict";
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-
-const { Gio } = imports.gi;
+import Gio from 'gi://Gio';
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { getInputSourceManager } from 'resource:///org/gnome/shell/ui/status/keyboard.js';
 
 const Iface = `<node>
     <interface name="dev.galets.gkr">
@@ -14,8 +13,10 @@ const Iface = `<node>
     </interface>
 </node>`;
 
-class Extension {
-    constructor() {
+export default class MyExtension extends Extension {
+    constructor(metadata) {
+        super(metadata);
+        
         log(`Initializing`);
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Iface, this);
         log(`Initialization complete`);
@@ -43,7 +44,7 @@ class Extension {
 
     reset() {
         log("Resetting keybpoard layout.");
-        const sourceman = imports.ui.status.keyboard.getInputSourceManager();
+        const sourceman = getInputSourceManager();
 
         if (!sourceman) {
             error("cannot obtain InputSourceManager");
@@ -73,7 +74,7 @@ function init() {
 }
 
 function _log(logfunc, ...args) {
-    logfunc(`${Me.metadata.uuid}:`, ...args);
+    logfunc(`${Extension.uuid}:`, ...args);
 }
 
 function log(...args) {
