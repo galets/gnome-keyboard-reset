@@ -1,7 +1,7 @@
 # Keyboard reset extension for Gnome
 
 This version is for gnome shell versions 45+. For older shells, please
-see [notice for legacy shells](#legacy)
+see [notice for legacy shells](#legacy-gnome-shell)
 
 ## Objective
 
@@ -49,7 +49,7 @@ This extension exposes method to set keyboard to default as such:
             --method dev.galets.gkr.reset
 ```
 
-## Legacy Gnome Shell {#legacy}
+## Legacy Gnome Shell
 
 For gnome shells version 41 to 44, please use legacy branch as such:
 
