@@ -2,6 +2,7 @@
 
 import Gio from 'gi://Gio';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { getInputSourceManager } from 'resource:///org/gnome/shell/ui/status/keyboard.js';
 
 const Iface = `<node>
     <interface name="dev.galets.gkr">
@@ -43,7 +44,7 @@ export default class MyExtension extends Extension {
 
     reset() {
         log("Resetting keybpoard layout.");
-        const sourceman = imports.ui.status.keyboard.getInputSourceManager();
+        const sourceman = getInputSourceManager();
 
         if (!sourceman) {
             error("cannot obtain InputSourceManager");
