@@ -1,5 +1,8 @@
 # Keyboard reset extension for Gnome
 
+This is a legacy branch for gnome shell versions 41 to 44. For newer
+versions check out master branch
+
 ## Objective
 
 When there is more than one keyboard layout registered in Gnome, the
