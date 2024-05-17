@@ -1,5 +1,5 @@
 {
-    "name": "Keyboard Reset",
+    "name": "Keyboard Reset (legacy)",
     "description": "Reset keyboard to default layout on screensaver activation",
     "uuid": "keyboard-reset@galets",
     "shell-version": ["41", "42", "43", "44"],
