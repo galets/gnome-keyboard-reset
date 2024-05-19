@@ -1,5 +1,7 @@
 # Keyboard reset extension for Gnome
 
+https://github.com/galets/gnome-keyboard-reset
+
 This is a legacy branch for gnome shell versions 41 to 44. For newer
 versions check out master branch
 
