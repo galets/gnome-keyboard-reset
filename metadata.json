@@ -4,5 +4,5 @@
     "uuid": "keyboard-reset@galets",
     "shell-version": ["45","46"],
     "url": "https://github.com/galets/gnome-keyboard-reset",
-    "session-modes": ["user", "unlock-dialog"]
+    "session-modes": ["unlock-dialog"]
 }
