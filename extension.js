@@ -33,6 +33,7 @@ class Extension {
         log(`Enabled`);
     }
 
+    // This extension is using "session-modes": ["unlock-dialog"] because it is designed to switch keyboard mode in unlock dialog
     disable() {
         if (this._ss) {
             Gio.DBus.session.signal_unsubscribe(this._ss);
