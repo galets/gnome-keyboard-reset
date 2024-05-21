@@ -13,24 +13,28 @@ const Iface = `<node>
     </interface>
 </node>`;
 
-export default class MyExtension extends Extension {
+export default class GnomeKeyboardResetExtension extends Extension {
     constructor(metadata) {
         super(metadata);
         
-        log(`Initializing`);
-        this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Iface, this);
-        log(`Initialization complete`);
+        this._dbusImpl = null;
+        this._ss = null;
+        log(`Loaded`);
     }
 
     enable() {
+        this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Iface, this);
         this._dbusImpl.export(Gio.DBus.session, "/dev/galets/gkr");
 
         this._ss = Gio.DBus.session.signal_subscribe(null, "org.gnome.ScreenSaver", "ActiveChanged", "/org/gnome/ScreenSaver", null, Gio.DBusSignalFlags.NONE, (connection, sender, path, iface, signal, params) => {
             log("Screen lock status changed", params);
             this.reset();
         });
+
+        log(`Enabled`);
     }
 
+    // This extension is using "session-modes": ["unlock-dialog"] because it is designed to switch keyboard mode in unlock dialog
     disable() {
         if (this._ss) {
             Gio.DBus.session.signal_unsubscribe(this._ss);
@@ -39,11 +43,14 @@ export default class MyExtension extends Extension {
 
         if (this._dbusImpl) {
             this._dbusImpl.unexport();
+            this._dbusImpl = null;
         }
+
+        log(`Disabled`);
     }
 
     reset() {
-        log("Resetting keybpoard layout.");
+        log("Resetting keyboard layout.");
         const sourceman = getInputSourceManager();
 
         if (!sourceman) {
@@ -53,7 +60,7 @@ export default class MyExtension extends Extension {
 
         try {
             const idx = sourceman.currentSource.index;
-            log(`Current keybpoard layout index is: ${idx}`);
+            log(`Current keyboard layout index is: ${idx}`);
 
             if (idx != 0) {
                 sourceman.inputSources[0].activate(true);
@@ -67,10 +74,6 @@ export default class MyExtension extends Extension {
             return [false, `${e}`];
         }
     }
-}
-
-function init() {
-    return new Extension();
 }
 
 function _log(logfunc, ...args) {
