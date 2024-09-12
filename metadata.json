@@ -1,8 +1,14 @@
 {
-    "name": "Keyboard Reset",
-    "description": "Reset keyboard to default layout on screensaver activation",
-    "uuid": "keyboard-reset@galets",
-    "shell-version": ["45","46"],
-    "url": "https://github.com/galets/gnome-keyboard-reset",
-    "session-modes": ["unlock-dialog"]
+  "name": "Keyboard Reset",
+  "description": "Reset keyboard to default layout on screensaver activation",
+  "uuid": "keyboard-reset@galets",
+  "shell-version": [
+    "45",
+    "46"
+  ],
+  "url": "https://github.com/galets/gnome-keyboard-reset",
+  "session-modes": [
+    "unlock-dialog"
+  ],
+  "version": "33"
 }

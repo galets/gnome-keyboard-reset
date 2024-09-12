@@ -1,5 +1,9 @@
 # Debugging notes
 
+## Install
+
+gnome-extensions install gnome-keyboard-reset.zip
+
 ## Via command line
 
 ```bash
