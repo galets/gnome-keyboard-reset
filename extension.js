@@ -19,7 +19,7 @@ export default class GnomeKeyboardResetExtension extends Extension {
         
         this._dbusImpl = null;
         this._ss = null;
-        log(`Loaded`);
+        info(`Loaded`);
     }
 
     enable() {
@@ -27,11 +27,11 @@ export default class GnomeKeyboardResetExtension extends Extension {
         this._dbusImpl.export(Gio.DBus.session, "/dev/galets/gkr");
 
         this._ss = Gio.DBus.session.signal_subscribe(null, "org.gnome.ScreenSaver", "ActiveChanged", "/org/gnome/ScreenSaver", null, Gio.DBusSignalFlags.NONE, (connection, sender, path, iface, signal, params) => {
-            log("Screen lock status changed", params);
+            info("Screen lock status changed", params);
             this.reset();
         });
 
-        log(`Enabled`);
+        info(`Enabled`);
     }
 
     // This extension is using "session-modes": ["unlock-dialog"] because it is designed to switch keyboard mode in unlock dialog
@@ -46,11 +46,11 @@ export default class GnomeKeyboardResetExtension extends Extension {
             this._dbusImpl = null;
         }
 
-        log(`Disabled`);
+        info(`Disabled`);
     }
 
     reset() {
-        log("Resetting keyboard layout.");
+        info("Resetting keyboard layout.");
         const sourceman = getInputSourceManager();
 
         if (!sourceman) {
@@ -60,11 +60,11 @@ export default class GnomeKeyboardResetExtension extends Extension {
 
         try {
             const idx = sourceman.currentSource.index;
-            log(`Current keyboard layout index is: ${idx}`);
+            info(`Current keyboard layout index is: ${idx}`);
 
             if (idx != 0) {
                 sourceman.inputSources[0].activate(true);
-                log(`Keyboard layout was reset.`);
+                info(`Keyboard layout was reset.`);
                 return [true, "reset successful"];
             } else {
                 return [true, "already reset"];
@@ -77,10 +77,10 @@ export default class GnomeKeyboardResetExtension extends Extension {
 }
 
 function _log(logfunc, ...args) {
-    logfunc(`${Extension.uuid}:`, ...args);
+    logfunc(`keyboard-reset@galets:`, ...args);
 }
 
-function log(...args) {
+function info(...args) {
     _log(console.log, ...args);
 }
 
