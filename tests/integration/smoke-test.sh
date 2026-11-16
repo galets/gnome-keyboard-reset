@@ -32,10 +32,12 @@ gnome-shell --version
 echo "=== Installing extension ==="
 make -C "$REPO_ROOT" install
 
-echo "=== Configuring dual keyboard layouts ==="
+echo "=== Configuring dual keyboard layouts & enabling extension ==="
 gsettings set org.gnome.desktop.input-sources sources "[('xkb', 'us'), ('xkb', 'de')]"
 gsettings set org.gnome.desktop.input-sources mru-sources "[('xkb', 'us'), ('xkb', 'de')]"
 [[ "$(gsettings get org.gnome.desktop.input-sources sources)" == "[('xkb', 'us'), ('xkb', 'de')]" ]]
+gsettings set org.gnome.shell disable-user-extensions false
+gsettings set org.gnome.shell enabled-extensions "['keyboard-reset@galets']"
 
 echo "=== Starting headless GNOME Shell ==="
 export LIBGL_ALWAYS_SOFTWARE=1
@@ -70,8 +72,8 @@ gdbus call --session \
     --method org.freedesktop.DBus.Peer.Ping >/dev/null
 
 echo "=== Enabling extension ==="
-gsettings set org.gnome.shell disable-user-extensions false
-gnome-extensions enable keyboard-reset@galets
+kill -0 "$SHELL_PID"
+gnome-extensions enable keyboard-reset@galets || true
 for _ in $(seq 1 10); do
     if gdbus call --session --dest org.gnome.Shell --object-path /dev/galets/gkr --method dev.galets.gkr.reset >/dev/null 2>&1; then
         break

@@ -11,6 +11,7 @@ RUN dnf install -y \
         make \
         mesa-dri-drivers \
         mesa-libEGL \
+        mesa-libGL \
         dconf \
         pipewire \
         ibus \
