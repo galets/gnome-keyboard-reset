@@ -59,8 +59,14 @@ jobs:
           for _ in $(seq 1 30); do
             if docker exec "$CID" systemctl is-active systemd-logind >/dev/null 2>&1; then
               docker exec "$CID" loginctl enable-linger tester
-              for _ in $(seq 1 15); do
-                if docker exec "$CID" test -S /run/user/1000/bus; then
+              for _ in $(seq 1 20); do
+                if docker exec -u tester \
+                  -e XDG_RUNTIME_DIR=/run/user/1000 \
+                  -e DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
+                  "$CID" gdbus call --session \
+                  --dest org.freedesktop.DBus \
+                  --object-path /org/freedesktop/DBus \
+                  --method org.freedesktop.DBus.Peer.Ping >/dev/null 2>&1; then
                   exit 0
                 fi
                 sleep 1
