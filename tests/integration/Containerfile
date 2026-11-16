@@ -1,0 +1,18 @@
+ARG BASE_IMAGE=fedora:41
+FROM ${BASE_IMAGE}
+
+RUN dnf install -y \
+        gnome-shell \
+        dbus-daemon \
+        glib2 \
+        make \
+        mesa-dri-drivers \
+        dconf \
+    && dnf clean all
+
+WORKDIR /workspace
+COPY . .
+
+RUN chmod +x tests/integration/smoke-test.sh
+
+CMD ["./tests/integration/smoke-test.sh"]

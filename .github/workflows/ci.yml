@@ -1,0 +1,97 @@
+name: CI and Package
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run unit tests
+        run: make test
+
+  integration-smoke:
+    name: Integration Smoke Test (GNOME Shell)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        base_image:
+          - fedora:41
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build smoke test container (${{ matrix.base_image }})
+        run: |
+          docker build \
+            -f tests/integration/Containerfile \
+            --build-arg BASE_IMAGE=${{ matrix.base_image }} \
+            -t gkr-smoke:test .
+
+      - name: Run headless GNOME Shell smoke test
+        run: docker run --rm gkr-smoke:test
+
+  package:
+    name: Verify Version & Package
+    needs: [unit-tests, integration-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify package version increased compared to previous build
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_ver="$(jq -r '.version | tonumber' metadata.json)"
+
+          if [[ "${{ github.ref_name }}" == "master" ]] && [[ "${{ github.event_name }}" == "push" ]]; then
+            prev_ref="HEAD~1"
+          else
+            git fetch origin master:refs/remotes/origin/master --depth=1 || true
+            prev_ref="origin/master"
+          fi
+
+          if git cat-file -e "${prev_ref}:metadata.json" 2>/dev/null; then
+            prev_ver="$(git show "${prev_ref}:metadata.json" | jq -r '.version | tonumber')"
+          else
+            prev_ver=0
+          fi
+
+          echo "Previous version (${prev_ref}): ${prev_ver}"
+          echo "Current version (HEAD): ${current_ver}"
+
+          if (( current_ver <= prev_ver )); then
+            echo "::error::Package version (${current_ver}) must be greater than previous build version (${prev_ver})."
+            exit 1
+          fi
+
+      - name: Install p7zip
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+
+      - name: Package extension (same files as package.sh)
+        run: |
+          rm -f gnome-keyboard-reset.zip
+          7z a gnome-keyboard-reset.zip extension.js LICENSE metadata.json README.md
+          7z l gnome-keyboard-reset.zip
+
+      - name: Upload packaged extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gnome-keyboard-reset-v${{ github.run_number }}
+          path: gnome-keyboard-reset.zip
+          if-no-files-found: error
