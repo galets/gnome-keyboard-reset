@@ -54,7 +54,7 @@ jobs:
       - name: Run headless GNOME Shell ${{ matrix.gnome }} smoke test
         run: |
           set -euo pipefail
-          CID="$(docker run -d --rm --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw gkr-smoke:${{ matrix.gnome }} /sbin/init)"
+          CID="$(docker run -d --rm --privileged --shm-size=512m --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw gkr-smoke:${{ matrix.gnome }} /sbin/init)"
           trap 'docker stop "$CID" >/dev/null 2>&1 || true' EXIT
 
           for _ in $(seq 1 30); do

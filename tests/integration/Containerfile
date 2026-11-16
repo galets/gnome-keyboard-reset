@@ -4,6 +4,8 @@ FROM ${BASE_IMAGE}
 RUN dnf install -y \
         systemd \
         gnome-shell \
+        gnome-session \
+        xorg-x11-server-Xwayland \
         dbus-daemon \
         glib2 \
         make \
