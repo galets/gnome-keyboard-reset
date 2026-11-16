@@ -22,23 +22,49 @@ jobs:
         run: make test
 
   integration-smoke:
-    name: Integration Smoke Test (GNOME Shell)
+    name: Integration Smoke Test (GNOME ${{ matrix.gnome }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - gnome: '46'
+            base_image: 'fedora:40'
+          - gnome: '47'
+            base_image: 'fedora:41'
+          - gnome: '48'
+            base_image: 'fedora:42'
+          - gnome: '49'
+            base_image: 'fedora:43'
+          - gnome: '50'
+            base_image: 'fedora:44'
+          - gnome: '51'
+            base_image: 'fedora:45'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install GNOME Shell and D-Bus tools
+      - name: Build smoke test container (${{ matrix.base_image }} / GNOME ${{ matrix.gnome }})
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            gnome-shell \
-            dbus-x11 \
-            libglib2.0-bin \
-            dconf-cli
+          docker build \
+            -f tests/integration/Containerfile \
+            --build-arg BASE_IMAGE=${{ matrix.base_image }} \
+            -t gkr-smoke:${{ matrix.gnome }} .
 
-      - name: Run headless GNOME Shell smoke test
-        run: ./tests/integration/smoke-test.sh
+      - name: Run headless GNOME Shell ${{ matrix.gnome }} smoke test
+        run: |
+          set -euo pipefail
+          CID="$(docker run -d --rm --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw gkr-smoke:${{ matrix.gnome }} /sbin/init)"
+          trap 'docker stop "$CID" >/dev/null 2>&1 || true' EXIT
+
+          for _ in $(seq 1 30); do
+            if docker exec "$CID" systemctl is-active systemd-logind >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+
+          docker exec "$CID" ./tests/integration/smoke-test.sh
 
   package:
     name: Verify Version & Package

@@ -44,7 +44,12 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/xdg-runtime}"
 mkdir -p "$XDG_RUNTIME_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
 
-gnome-shell --headless --no-x11 --virtual-monitor 1280x720 --unsafe-mode >"$LOG_FILE" 2>&1 &
+SHELL_ARGS=(--headless --virtual-monitor 1280x720 --unsafe-mode)
+if gnome-shell --help 2>&1 | grep -q -- '--no-x11'; then
+    SHELL_ARGS+=(--no-x11)
+fi
+
+gnome-shell "${SHELL_ARGS[@]}" >"$LOG_FILE" 2>&1 &
 SHELL_PID=$!
 
 echo "=== Waiting for org.gnome.Shell on session D-Bus ==="
