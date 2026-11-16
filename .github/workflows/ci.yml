@@ -24,24 +24,21 @@ jobs:
   integration-smoke:
     name: Integration Smoke Test (GNOME Shell)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        base_image:
-          - fedora:41
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build smoke test container (${{ matrix.base_image }})
+      - name: Install GNOME Shell and D-Bus tools
         run: |
-          docker build \
-            -f tests/integration/Containerfile \
-            --build-arg BASE_IMAGE=${{ matrix.base_image }} \
-            -t gkr-smoke:test .
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gnome-shell \
+            dbus-x11 \
+            libglib2.0-bin \
+            dconf-cli
 
       - name: Run headless GNOME Shell smoke test
-        run: docker run --rm gkr-smoke:test
+        run: ./tests/integration/smoke-test.sh
 
   package:
     name: Verify Version & Package
