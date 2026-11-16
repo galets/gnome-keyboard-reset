@@ -58,7 +58,15 @@ jobs:
           echo "CID=$CID" >> "$GITHUB_ENV"
           for _ in $(seq 1 30); do
             if docker exec "$CID" systemctl is-active systemd-logind >/dev/null 2>&1; then
-              exit 0
+              docker exec "$CID" loginctl enable-linger tester
+              for _ in $(seq 1 15); do
+                if docker exec "$CID" test -S /run/user/1000/bus; then
+                  exit 0
+                fi
+                sleep 1
+              done
+              echo "user@1000 D-Bus socket did not appear"
+              exit 1
             fi
             sleep 1
           done
@@ -66,7 +74,12 @@ jobs:
           exit 1
 
       - name: Run headless GNOME Shell ${{ matrix.gnome }} smoke test
-        run: docker exec -u tester -e HOME=/home/tester "$CID" ./tests/integration/smoke-test.sh
+        run: |
+          docker exec -u tester \
+            -e HOME=/home/tester \
+            -e XDG_RUNTIME_DIR=/run/user/1000 \
+            -e DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
+            "$CID" ./tests/integration/smoke-test.sh
 
       - name: Stop container
         if: always() && env.CID != ''
