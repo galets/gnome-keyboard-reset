@@ -52,19 +52,38 @@ if gnome-shell --help 2>&1 | grep -q -- '--no-x11'; then
     SHELL_ARGS+=(--no-x11)
 fi
 
-gnome-shell "${SHELL_ARGS[@]}" >"$LOG_FILE" 2>&1 &
-SHELL_PID=$!
+start_gnome_shell() {
+    for attempt in 1 2 3; do
+        gnome-shell "${SHELL_ARGS[@]}" >"$LOG_FILE" 2>&1 &
+        SHELL_PID=$!
 
-echo "=== Waiting for org.gnome.Shell on session D-Bus ==="
-for _ in $(seq 1 30); do
-    if gdbus call --session \
-        --dest org.gnome.Shell \
-        --object-path /org/gnome/Shell \
-        --method org.freedesktop.DBus.Peer.Ping >/dev/null 2>&1; then
-        break
-    fi
-    sleep 1
-done
+        echo "=== Waiting for org.gnome.Shell on session D-Bus (attempt $attempt) ==="
+        for _ in $(seq 1 30); do
+            if ! kill -0 "$SHELL_PID" 2>/dev/null; then
+                break
+            fi
+            if gdbus call --session \
+                --dest org.gnome.Shell \
+                --object-path /org/gnome/Shell \
+                --method org.freedesktop.DBus.Peer.Ping >/dev/null 2>&1; then
+                sleep 1
+                if kill -0 "$SHELL_PID" 2>/dev/null; then
+                    return 0
+                fi
+                break
+            fi
+            sleep 1
+        done
+
+        kill "$SHELL_PID" 2>/dev/null || true
+        wait "$SHELL_PID" 2>/dev/null || true
+        SHELL_PID=""
+        sleep 2
+    done
+    return 1
+}
+
+start_gnome_shell
 
 gdbus call --session \
     --dest org.gnome.Shell \
