@@ -15,6 +15,9 @@ RUN dnf install -y \
         dconf \
         pipewire \
         ibus \
+        adwaita-icon-theme \
+        dejavu-sans-fonts \
+        fontconfig \
     && dnf clean all \
     && useradd -m -s /bin/bash tester
 
