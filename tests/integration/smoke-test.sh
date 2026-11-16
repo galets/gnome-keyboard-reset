@@ -35,6 +35,7 @@ make -C "$REPO_ROOT" install
 echo "=== Configuring dual keyboard layouts ==="
 gsettings set org.gnome.desktop.input-sources sources "[('xkb', 'us'), ('xkb', 'de')]"
 gsettings set org.gnome.desktop.input-sources mru-sources "[('xkb', 'us'), ('xkb', 'de')]"
+[[ "$(gsettings get org.gnome.desktop.input-sources sources)" == "[('xkb', 'us'), ('xkb', 'de')]" ]]
 
 echo "=== Starting headless GNOME Shell ==="
 export LIBGL_ALWAYS_SOFTWARE=1

@@ -51,20 +51,26 @@ jobs:
             --build-arg BASE_IMAGE=${{ matrix.base_image }} \
             -t gkr-smoke:${{ matrix.gnome }} .
 
-      - name: Run headless GNOME Shell ${{ matrix.gnome }} smoke test
+      - name: Boot systemd container (${{ matrix.base_image }})
         run: |
           set -euo pipefail
           CID="$(docker run -d --rm --privileged --shm-size=512m --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw gkr-smoke:${{ matrix.gnome }} /sbin/init)"
-          trap 'docker stop "$CID" >/dev/null 2>&1 || true' EXIT
-
+          echo "CID=$CID" >> "$GITHUB_ENV"
           for _ in $(seq 1 30); do
             if docker exec "$CID" systemctl is-active systemd-logind >/dev/null 2>&1; then
-              break
+              exit 0
             fi
             sleep 1
           done
+          echo "systemd-logind did not become active"
+          exit 1
 
-          docker exec -u tester -e HOME=/home/tester "$CID" ./tests/integration/smoke-test.sh
+      - name: Run headless GNOME Shell ${{ matrix.gnome }} smoke test
+        run: docker exec -u tester -e HOME=/home/tester "$CID" ./tests/integration/smoke-test.sh
+
+      - name: Stop container
+        if: always() && env.CID != ''
+        run: docker stop "$CID" >/dev/null 2>&1 || true
 
   package:
     name: Verify Version & Package
