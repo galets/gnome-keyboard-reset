@@ -69,8 +69,14 @@ gdbus call --session \
     --method org.freedesktop.DBus.Peer.Ping >/dev/null
 
 echo "=== Enabling extension ==="
+gsettings set org.gnome.shell disable-user-extensions false
 gnome-extensions enable keyboard-reset@galets
-sleep 2
+for _ in $(seq 1 10); do
+    if gdbus call --session --dest org.gnome.Shell --object-path /dev/galets/gkr --method dev.galets.gkr.reset >/dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
 gnome-extensions info keyboard-reset@galets
 
 eval_shell() {
@@ -87,7 +93,12 @@ echo "Result 1: $RES1"
 
 echo "=== Test 2: Switch to layout 1 (de) and call D-Bus reset() ==="
 eval_shell "import('resource:///org/gnome/shell/ui/status/keyboard.js').then(m => m.getInputSourceManager().inputSources[1].activate(true));" >/dev/null
-sleep 1
+for _ in $(seq 1 10); do
+    if [[ "$(gsettings get org.gnome.desktop.input-sources mru-sources)" == "[('xkb', 'de')"* ]]; then
+        break
+    fi
+    sleep 0.5
+done
 RES2="$(gdbus call --session --dest org.gnome.Shell --object-path /dev/galets/gkr --method dev.galets.gkr.reset)"
 echo "Result 2: $RES2"
 [[ "$RES2" == *"(true, 'reset successful')"* ]]

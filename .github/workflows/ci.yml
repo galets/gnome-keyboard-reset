@@ -64,7 +64,7 @@ jobs:
             sleep 1
           done
 
-          docker exec "$CID" ./tests/integration/smoke-test.sh
+          docker exec -u tester -e HOME=/home/tester "$CID" ./tests/integration/smoke-test.sh
 
   package:
     name: Verify Version & Package

@@ -11,12 +11,15 @@ RUN dnf install -y \
         mesa-libEGL \
         dconf \
         pipewire \
-    && dnf clean all
+        ibus \
+    && dnf clean all \
+    && useradd -m -s /bin/bash tester
 
 WORKDIR /workspace
 COPY . .
 
-RUN chmod +x tests/integration/smoke-test.sh
+RUN chmod +x tests/integration/smoke-test.sh \
+    && chown -R tester:tester /workspace
 
 STOPSIGNAL SIGRTMIN+3
 CMD ["/sbin/init"]
