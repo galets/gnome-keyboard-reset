@@ -44,7 +44,7 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/xdg-runtime}"
 mkdir -p "$XDG_RUNTIME_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
 
-gnome-shell --headless --virtual-monitor 1280x720 >"$LOG_FILE" 2>&1 &
+gnome-shell --headless --no-x11 --virtual-monitor 1280x720 --unsafe-mode >"$LOG_FILE" 2>&1 &
 SHELL_PID=$!
 
 echo "=== Waiting for org.gnome.Shell on session D-Bus ==="
@@ -68,13 +68,20 @@ gnome-extensions enable keyboard-reset@galets
 sleep 2
 gnome-extensions info keyboard-reset@galets
 
+eval_shell() {
+    gdbus call --session \
+        --dest org.gnome.Shell \
+        --object-path /org/gnome/Shell \
+        --method org.gnome.Shell.Eval "$1"
+}
+
 echo "=== Test 1: D-Bus reset() when already at index 0 ==="
 RES1="$(gdbus call --session --dest org.gnome.Shell --object-path /dev/galets/gkr --method dev.galets.gkr.reset)"
 echo "Result 1: $RES1"
 [[ "$RES1" == *"(true, 'already reset')"* ]]
 
 echo "=== Test 2: Switch to layout 1 (de) and call D-Bus reset() ==="
-gsettings set org.gnome.desktop.input-sources mru-sources "[('xkb', 'de'), ('xkb', 'us')]"
+eval_shell "import('resource:///org/gnome/shell/ui/status/keyboard.js').then(m => m.getInputSourceManager().inputSources[1].activate(true));" >/dev/null
 sleep 1
 RES2="$(gdbus call --session --dest org.gnome.Shell --object-path /dev/galets/gkr --method dev.galets.gkr.reset)"
 echo "Result 2: $RES2"
@@ -85,7 +92,7 @@ echo "MRU sources after D-Bus reset: $MRU_AFTER_DBUS"
 [[ "$MRU_AFTER_DBUS" == "[('xkb', 'us')"* ]]
 
 echo "=== Test 3: Switch to layout 1 (de) and trigger ScreenSaver lock/signal ==="
-gsettings set org.gnome.desktop.input-sources mru-sources "[('xkb', 'de'), ('xkb', 'us')]"
+eval_shell "import('resource:///org/gnome/shell/ui/status/keyboard.js').then(m => m.getInputSourceManager().inputSources[1].activate(true));" >/dev/null
 sleep 1
 
 gdbus call --session --dest org.gnome.ScreenSaver --object-path /org/gnome/ScreenSaver --method org.gnome.ScreenSaver.Lock >/dev/null 2>&1 || true
