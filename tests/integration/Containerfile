@@ -1,0 +1,31 @@
+ARG BASE_IMAGE=fedora:41
+FROM ${BASE_IMAGE}
+
+RUN dnf install -y \
+        systemd \
+        gnome-shell \
+        gnome-session \
+        xorg-x11-server-Xwayland \
+        dbus-daemon \
+        glib2 \
+        make \
+        mesa-dri-drivers \
+        mesa-libEGL \
+        mesa-libGL \
+        dconf \
+        pipewire \
+        ibus \
+        adwaita-icon-theme \
+        dejavu-sans-fonts \
+        fontconfig \
+    && dnf clean all \
+    && useradd -m -s /bin/bash tester
+
+WORKDIR /workspace
+COPY . .
+
+RUN chmod +x tests/integration/smoke-test.sh \
+    && chown -R tester:tester /workspace
+
+STOPSIGNAL SIGRTMIN+3
+CMD ["/sbin/init"]

@@ -1,0 +1,145 @@
+name: CI and Package
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run unit tests
+        run: make test
+
+  integration-smoke:
+    name: Integration Smoke Test (GNOME ${{ matrix.gnome }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - gnome: '46'
+            base_image: 'fedora:40'
+          - gnome: '47'
+            base_image: 'fedora:41'
+          - gnome: '48'
+            base_image: 'fedora:42'
+          - gnome: '49'
+            base_image: 'fedora:43'
+          - gnome: '50'
+            base_image: 'fedora:44'
+          - gnome: '51'
+            base_image: 'fedora:45'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build smoke test container (${{ matrix.base_image }} / GNOME ${{ matrix.gnome }})
+        run: |
+          docker build \
+            -f tests/integration/Containerfile \
+            --build-arg BASE_IMAGE=${{ matrix.base_image }} \
+            -t gkr-smoke:${{ matrix.gnome }} .
+
+      - name: Boot systemd container (${{ matrix.base_image }})
+        run: |
+          set -euo pipefail
+          CID="$(docker run -d --rm --privileged --shm-size=512m --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw gkr-smoke:${{ matrix.gnome }} /sbin/init)"
+          echo "CID=$CID" >> "$GITHUB_ENV"
+          for _ in $(seq 1 30); do
+            if docker exec "$CID" systemctl is-active systemd-logind >/dev/null 2>&1; then
+              docker exec "$CID" loginctl enable-linger tester
+              for _ in $(seq 1 20); do
+                if docker exec -u tester \
+                  -e XDG_RUNTIME_DIR=/run/user/1000 \
+                  -e DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
+                  "$CID" gdbus call --session \
+                  --dest org.freedesktop.DBus \
+                  --object-path /org/freedesktop/DBus \
+                  --method org.freedesktop.DBus.Peer.Ping >/dev/null 2>&1; then
+                  exit 0
+                fi
+                sleep 1
+              done
+              echo "user@1000 D-Bus socket did not appear"
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "systemd-logind did not become active"
+          exit 1
+
+      - name: Run headless GNOME Shell ${{ matrix.gnome }} smoke test
+        run: |
+          docker exec -u tester \
+            -e HOME=/home/tester \
+            -e XDG_RUNTIME_DIR=/run/user/1000 \
+            -e DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
+            "$CID" ./tests/integration/smoke-test.sh
+
+      - name: Stop container
+        if: always() && env.CID != ''
+        run: docker stop "$CID" >/dev/null 2>&1 || true
+
+  package:
+    name: Verify Version & Package
+    needs: [unit-tests, integration-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify package version increased compared to previous build
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_ver="$(jq -r '.version | tonumber' metadata.json)"
+
+          if [[ "${{ github.ref_name }}" == "master" ]] && [[ "${{ github.event_name }}" == "push" ]]; then
+            prev_ref="HEAD~1"
+          else
+            git fetch origin master:refs/remotes/origin/master --depth=1 || true
+            prev_ref="origin/master"
+          fi
+
+          if git cat-file -e "${prev_ref}:metadata.json" 2>/dev/null; then
+            prev_ver="$(git show "${prev_ref}:metadata.json" | jq -r '.version | tonumber')"
+          else
+            prev_ver=0
+          fi
+
+          echo "Previous version (${prev_ref}): ${prev_ver}"
+          echo "Current version (HEAD): ${current_ver}"
+
+          if (( current_ver <= prev_ver )); then
+            echo "::error::Package version (${current_ver}) must be greater than previous build version (${prev_ver})."
+            exit 1
+          fi
+
+      - name: Install p7zip
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+
+      - name: Package extension (same files as package.sh)
+        run: |
+          rm -f gnome-keyboard-reset.zip
+          7z a gnome-keyboard-reset.zip extension.js LICENSE metadata.json README.md
+          7z l gnome-keyboard-reset.zip
+
+      - name: Upload packaged extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gnome-keyboard-reset-v${{ github.run_number }}
+          path: gnome-keyboard-reset.zip
+          if-no-files-found: error
